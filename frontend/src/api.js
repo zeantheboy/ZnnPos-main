@@ -2,9 +2,10 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const localHost = window.location.hostname || 'localhost';
-const API_BASE_URL = window.location.protocol === 'https:'
+const configuredApiBaseUrl = String(import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/$/, '');
+const API_BASE_URL = configuredApiBaseUrl || (window.location.protocol === 'https:'
   ? '/api'
-  : `http://${localHost}:3001/api`;
+  : `http://${localHost}:3001/api`);
 
 const api = axios.create({
   baseURL: API_BASE_URL,

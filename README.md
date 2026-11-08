@@ -53,6 +53,10 @@ Data lama otomatis ditempatkan pada toko **Toko Utama** dengan kode `utama`. Sup
 
 Nama toko dapat diubah oleh Super Admin melalui **Pengaturan > Nama Toko**. Nama tersebut akan tampil bersama identitas **ZnnCashier** pada nota belanja, laporan A4, dan cetak barcode.
 
+## Deploy frontend ke Vercel
+
+Repository ini memiliki konfigurasi `vercel.json` untuk men-deploy folder **frontend** saja. Backend Node.js, Electron, dan PostgreSQL tetap dijalankan terpisah. Setelah backend tersedia, isi environment variable `VITE_API_BASE_URL` di Vercel dengan alamat API backend lengkap, misalnya `https://api.contoh.com/api`.
+
 Setiap toko memiliki batas awal **3 akun aktif**. Toko Utama dapat menyesuaikan batas pengguna setiap toko melalui **Toko > Batas Pengguna Toko**. Untuk menambah akun setelah batas tercapai, naikkan kuota toko terlebih dahulu.
 
 Data transaksi penjualan lebih lama dari **2 bulan** dibersihkan otomatis mulai tanggal **1 setiap bulan**. Rincian transaksi, item transaksi, retur terkait, serta jejak stok dan audit yang terkait dengan transaksi lama ikut dibersihkan. Jika aplikasi sedang mati pada tanggal 1, proses akan mengejar pembersihan tersebut saat aplikasi berikutnya aktif.
