@@ -55,7 +55,7 @@ Nama toko dapat diubah oleh Super Admin melalui **Pengaturan > Nama Toko**. Nama
 
 ## Deploy frontend ke Vercel
 
-Repository ini memiliki konfigurasi `vercel.json` untuk men-deploy folder **frontend** saja. Backend Node.js, Electron, dan PostgreSQL tetap dijalankan terpisah. Setelah backend tersedia, isi environment variable `VITE_API_BASE_URL` di Vercel dengan alamat API backend lengkap, misalnya `https://api.contoh.com/api`.
+Folder `frontend` memiliki konfigurasi Vercel untuk men-deploy frontend saja. Pada pengaturan Vercel, gunakan **Root Directory: `frontend`**, **Build Command: `npm run build`**, dan **Output Directory: `dist`**. Backend Node.js, Electron, dan PostgreSQL tetap dijalankan terpisah. Setelah backend tersedia, isi environment variable `VITE_API_BASE_URL` di Vercel dengan alamat API backend lengkap, misalnya `https://api.contoh.com/api`.
 
 Setiap toko memiliki batas awal **3 akun aktif**. Toko Utama dapat menyesuaikan batas pengguna setiap toko melalui **Toko > Batas Pengguna Toko**. Untuk menambah akun setelah batas tercapai, naikkan kuota toko terlebih dahulu.
 
