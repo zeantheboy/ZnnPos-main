@@ -1,0 +1,1268 @@
+.app-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--bg-color);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+  display: flex;
+  gap: 2rem;
+}
+
+.pos-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.5rem;
+  align-content: start;
+}
+
+/* Sidebar (Glassmorphism) */
+.sidebar {
+  width: 90px;
+  background-color: var(--surface-color);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-right: var(--glass-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 0;
+  gap: 2.5rem;
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--text-secondary);
+  gap: 0.4rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+}
+
+.nav-item::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 0;
+  width: 4px;
+  background-color: var(--primary);
+  border-radius: 0 4px 4px 0;
+  transition: height 0.3s ease;
+}
+
+.nav-item:hover {
+  color: var(--primary);
+  background-color: rgba(59, 130, 246, 0.08);
+  transform: translateY(-2px);
+}
+
+.nav-item.active {
+  color: var(--primary);
+  background-color: rgba(59, 130, 246, 0.12);
+}
+
+.nav-item.active::before {
+  height: 60%;
+}
+
+/* Navbar (Glassmorphism) */
+.navbar {
+  height: auto;
+  min-height: 112px;
+  background-color: var(--surface-color);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 0 2rem;
+  row-gap: 0.6rem;
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+.navbar-actions {
+  flex-shrink: 0;
+  order: 1;
+  width: auto;
+  justify-content: flex-end;
+}
+
+.navbar-store-title {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+  order: 1;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.navbar-brand-name {
+  color: var(--primary);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.navbar-store-title strong {
+  max-width: min(32vw, 360px);
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 1.08rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navbar-store-code {
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+}
+
+.navbar-account-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.navbar-account-store {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.05rem;
+  max-width: 150px;
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+  line-height: 1.2;
+  text-align: right;
+}
+
+.navbar-account-store strong {
+  overflow: hidden;
+  max-width: 150px;
+  color: var(--primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navbar-account-toggle,
+.navbar-account-logout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  cursor: pointer;
+}
+
+.navbar-account-toggle {
+  padding: 4px;
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.navbar-account-logout {
+  gap: 0.3rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  color: var(--text-secondary);
+  background: var(--bg-color);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.navbar-shift-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-right: auto;
+  padding: 0.28rem 0.3rem 0.28rem 0.6rem;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  border-radius: 999px;
+  background: var(--surface-opaque);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+}
+
+.navbar-shift-control.active {
+  border-color: rgba(37, 99, 235, 0.6);
+  background: rgba(37, 99, 235, 0.16);
+  color: var(--primary-hover);
+}
+
+.navbar-shift-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.navbar-shift-indicator {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-secondary) 16%, transparent);
+}
+
+.navbar-shift-control.active .navbar-shift-indicator {
+  background: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.navbar-shift-action {
+  padding: 0.34rem 0.7rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.navbar-shift-action:hover {
+  background: var(--primary-hover);
+}
+
+.navbar-shift-action:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  background-color: var(--surface-opaque);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-full);
+  min-height: 58px;
+  padding: 0.8rem 1.35rem;
+  order: 2;
+  flex: 0 0 100%;
+  width: 100%;
+  max-width: none;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.search-bar:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.search-bar input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  color: var(--text-primary);
+  margin-left: 0.75rem;
+  font-size: 1.08rem;
+  font-weight: 600;
+}
+
+/* Cart Panel (Premium Layout) */
+.cart-panel {
+  width: 380px;
+  background-color: var(--surface-opaque);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  transition: transform 0.3s ease;
+}
+
+.cart-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 700;
+  font-size: 1.25rem;
+  background: var(--surface-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cart-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+/* Individual Cart Item */
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed var(--border-color);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.cart-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.cart-item-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.cart-item-price {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.cart-item-qty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-color);
+  padding: 0.2rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+}
+
+.cart-item-qty button {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: var(--surface-opaque);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.cart-item-qty button:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.cart-footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--surface-color);
+}
+
+.cart-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: var(--primary);
+}
+
+.btn {
+  padding: 0.85rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 1rem;
+  text-align: center;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150%;
+  height: 150%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translate(-50%, -50%) scale(0);
+  border-radius: 50%;
+  transition: transform 0.4s ease;
+}
+
+.btn:hover::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-success {
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+}
+
+.btn-success:hover {
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Product Card */
+.product-card {
+  background-color: var(--surface-opaque);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.product-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: var(--primary-gradient);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 2;
+}
+
+.product-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.product-card:hover::before {
+  opacity: 1;
+}
+
+.product-image {
+  width: 100%;
+  height: 140px;
+  background: linear-gradient(135deg, rgba(59,130,246,0.05), rgba(139,92,246,0.05));
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  border: 1px dashed var(--border-color);
+}
+
+.product-add-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(59, 130, 246, 0.15);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  border-radius: var(--radius-md);
+  transform: scale(0.95);
+}
+
+.product-card:hover .product-add-overlay {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.product-card:hover .product-image {
+  transform: scale(1.05);
+}
+
+.product-title {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+.product-price {
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* Modals & Forms (Glassmorphism) */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal-content {
+  background-color: var(--surface-opaque);
+  padding: 2.5rem;
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 480px;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+}
+
+.modal-input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.modal-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  background-color: var(--surface-opaque);
+}
+
+.input-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.form-group {
+  margin-bottom: 1.2rem;
+}
+
+.product-add-modal {
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.product-add-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.product-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.product-form-full {
+  grid-column: 1 / -1;
+}
+
+.product-add-footer {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .main-content {
+    width: 100%;
+  }
+
+  .navbar {
+    height: auto;
+    min-height: 108px;
+    padding: 0.6rem 0.75rem;
+    flex-wrap: wrap;
+    align-content: center;
+    gap: 0.45rem;
+  }
+
+  .search-bar {
+    order: 3;
+    flex: 0 0 100%;
+    width: 100%;
+    min-width: 0;
+    min-height: 54px;
+    padding: 0.65rem 0.9rem;
+  }
+
+  .search-bar input {
+    min-width: 0;
+    margin-left: 0.5rem;
+    font-size: 1rem;
+  }
+
+  .navbar-actions {
+    order: 2;
+    width: 100%;
+    justify-content: flex-end;
+    gap: 0.5rem !important;
+  }
+
+  .navbar-store-title {
+    flex: 0 0 100%;
+    order: 1;
+    gap: 0.45rem;
+  }
+
+  .navbar-store-title strong {
+    max-width: 52vw;
+    font-size: 0.98rem;
+  }
+
+  .navbar-brand-name {
+    font-size: 0.95rem;
+  }
+
+  .navbar-store-code {
+    font-size: 0.68rem;
+  }
+
+  .navbar-actions button {
+    padding: 4px !important;
+  }
+
+  .navbar-shift-control {
+    padding-left: 0.45rem;
+  }
+
+  .navbar-shift-label {
+    max-width: 128px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .navbar-shift-action {
+    padding: 0.34rem 0.55rem;
+  }
+
+  .product-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .product-form-full {
+    grid-column: auto;
+  }
+
+  .product-add-modal {
+    max-height: calc(100vh - 2rem);
+    padding: 1.25rem;
+  }
+
+  .connection-status-label {
+    display: none;
+  }
+
+  .content-area {
+    display: block;
+    padding: 1rem;
+    overflow: visible;
+  }
+
+  .pos-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .product-card {
+    padding: 0.75rem;
+  }
+
+  .product-image {
+    height: 110px;
+  }
+
+  .product-title {
+    font-size: 0.85rem;
+  }
+
+  .product-price {
+    font-size: 0.95rem;
+  }
+
+  .cart-panel,
+  .cart-container {
+    display: none !important;
+  }
+
+  .floating-cart-button {
+    position: fixed;
+    left: 50%;
+    bottom: 1rem;
+    transform: translateX(-50%);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(100% - 2rem);
+    max-width: 320px;
+    padding: 0.9rem 1.25rem;
+    border: none;
+    border-radius: 999px;
+    background: var(--primary-gradient);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    box-shadow: 0 12px 28px rgba(59, 130, 246, 0.35);
+    cursor: pointer;
+  }
+}
+/* =========================================
+   移动端底部导航栏样式
+   默认在桌面端隐藏，仅在手机端显示
+   ========================================= */
+
+/* 底部导航栏容器 */
+.mobile-bottom-nav {
+  display: none;
+}
+
+/* --- PAKSA MENU NAVIGASI MENETAP DI BAWAH HP --- */
+@media screen and (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: flex !important; /* Aktifkan mode horizontal */
+    position: fixed !important; /* Kunci posisi melayang */
+    bottom: 0 !important; /* Paksa menempel di paling bawah */
+    left: 0 !important;
+    width: 100% !important;
+    height: 65px !important; /* Tinggi menu yang pas untuk jempol */
+    background-color: #ffffff !important; /* Warna latar putih bersih */
+    border-top: 1px solid #e2e8f0 !important; /* Garis pembatas tipis atas */
+    justify-content: space-around !important; /* Bagi tombol kiri dan kanan secara adil */
+    align-items: center !important;
+    z-index: 99999 !important; /* Pastikan selalu berada di lapisan paling depan */
+    padding-bottom: env(safe-area-inset-bottom) !important; /* Aman untuk HP layar poni bawah */
+  }
+
+  .mobile-bottom-nav .nav-item {
+    display: flex !important;
+    flex-direction: column !important; /* Ikon di atas, teks di bawah */
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 1 !important;
+    text-decoration: none !important;
+    color: #64748b !important; /* Warna teks biasa gray */
+    font-size: 12px !important;
+  }
+
+  .mobile-bottom-nav .nav-item.active {
+    color: #3b82f6 !important; /* Warna biru cerah jika menu sedang aktif/diklik */
+    font-weight: bold !important;
+  }
+
+  .mobile-bottom-nav .nav-icon {
+    font-size: 20px !important; /* Perbesar ukuran emoji kardus dan keranjang */
+    margin-bottom: 2px !important;
+  }
+
+}
+/* --- MERAPIKAN KERANJANG BELANJA KHUSUS LAYAR HP --- */
+@media screen and (max-width: 768px) {
+  /* Mengubah keranjang samping menjadi bar melayang di bawah */
+  .app-container .cart-container {
+    position: fixed !important;
+    bottom: 65px !important; /* Pas di atas menu navigasi bawah Anda */
+    left: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    max-height: 50vh !important; /* Batasi agar tidak menutupi seluruh layar HP */
+    background-color: #1e1e1e !important; /* Warna gelap mewah */
+    color: #ffffff !important;
+    z-index: 9999 !important;
+    border-top-left-radius: 16px !important; /* Sudut melengkung yang modern */
+    border-top-right-radius: 16px !important;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4) !important;
+    padding: 12px 16px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+  }
+
+  /* Menyesuaikan grid isi keranjang di dalam HP */
+  .cart-items-list {
+    max-height: 150px !important;
+    overflow-y: auto !important;
+  }
+
+  /* Membuat tombol bayar/checkout menjadi besar dan penuh di HP */
+  .checkout-button {
+    width: 100% !important;
+    padding: 12px !important;
+    font-size: 16px !important;
+    font-weight: bold !important;
+    border-radius: 8px !important;
+    margin-top: 8px !important;
+    background-color: var(--primary) !important;
+  }
+}
+/* --- TATA GAYA KERANJANG MELAYANG KHUSUS HP MODERN --- */
+@media screen and (max-width: 768px) {
+  .desktop-cart-wrapper {
+    display: none !important; /* Sembunyikan keranjang desktop samping */
+  }
+
+  .mobile-floating-checkout-bar {
+    position: fixed !important;
+    bottom: 75px !important; /* Berada tepat di atas navigasi menu bawah HP */
+    left: 15px !important;
+    right: 15px !important;
+    background: var(--primary-gradient) !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+    z-index: 9998 !important;
+    cursor: pointer !important;
+  }
+
+  .mobile-view-cart-btn {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border: none !important;
+    color: #fff !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    font-weight: bold !important;
+    font-size: 13px !important;
+  }
+
+  .mobile-cart-popup-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    align-items: flex-end !important; /* Memunculkan struk dari bawah HP */
+  }
+
+  .mobile-cart-popup-content {
+    width: 100% !important;
+    background: #121212 !important;
+    border-top-left-radius: 20px !important;
+    border-top-right-radius: 20px !important;
+    padding: 20px !important;
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+    box-shadow: 0 -8px 30px rgba(0,0,0,0.5) !important;
+  }
+  
+  /* Reset setelan bawaan agar masuk di wadah HP */
+  .mobile-cart-popup-content .cart-container {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    position: static !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+}
+/* --- SEMUA PENGATURAN TAMPILAN HP POTRET MODERN (MAX-WIDTH 768PX) --- */
+@media screen and (max-width: 768px) {
+  /* 1. Sembunyikan keranjang desktop bawaan agar tidak sempit */
+  .desktop-cart-wrapper {
+    display: none !important;
+  }
+
+  /* 2. Mengunci Menu Navigasi POS & Products Menetap di Paling Bawah HP */
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 65px !important;
+    background-color: #1e1e1e !important; /* Bertema dark sesuai iMac Anda */
+    border-top: 1px solid #333 !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    z-index: 99999 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+
+  .mobile-bottom-nav .nav-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 1 !important;
+    text-decoration: none !important;
+    color: #888888 !important;
+    font-size: 12px !important;
+  }
+
+  .mobile-bottom-nav .nav-item.active {
+    color: var(--primary) !important;
+    font-weight: bold !important;
+  }
+
+  .mobile-bottom-nav .nav-icon {
+    font-size: 20px !important;
+    margin-bottom: 2px !important;
+  }
+
+  /* 3. Bar Hijau Melayang Gaya GoFood (Muncul Otomatis saat Ada Barang Diklik) */
+  .mobile-floating-checkout-bar {
+    position: fixed !important;
+    bottom: 75px !important; /* Pas berada tepat di atas menu navigasi */
+    left: 15px !important;
+    right: 15px !important;
+    background: var(--primary-gradient) !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    z-index: 99998 !important;
+    cursor: pointer !important;
+  }
+
+  .mobile-view-cart-btn {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border: none !important;
+    color: #fff !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    font-weight: bold !important;
+    font-size: 13px !important;
+  }
+
+  /* 4. Panel Nota Struk Belanja yang Meluncur Naik dari Bawah HP saat Diklik */
+  .mobile-cart-popup-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background-color: rgba(0, 0, 0, 0.75) !important;
+    z-index: 999999 !important; /* Menembus semua batasan koding agar muncul paling depan */
+    display: flex !important;
+    align-items: flex-end !important;
+  }
+
+  .mobile-cart-popup-content {
+    width: 100% !important;
+    background-color: #121212 !important;
+    border-top-left-radius: 24px !important;
+    border-top-right-radius: 24px !important;
+    padding: 20px !important;
+    padding-bottom: calc(30px + env(safe-area-inset-bottom)) !important;
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6) !important;
+    animation: slideUp 0.25s ease-out !important; /* Efek meluncur mulus */
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .mobile-cart-popup-content .cart-container {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    position: static !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+  }
+}
+/* --- PAKSA POPUP KERANJANG MUNCUL DI TENGAH LAYAR HP --- */
+@media screen and (max-width: 768px) {
+  .mobile-cart-popup-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background-color: rgba(0, 0, 0, 0.75) !important; /* Gelapkan latar belakang */
+    z-index: 999999 !important; /* Lapisan paling depan */
+    display: flex !important;
+    align-items: center !important; /* PAKSA PINDAH KE TENGAH LAYAR */
+    justify-content: center !important;
+    padding: 20px !important;
+  }
+
+  .mobile-cart-popup-content {
+    width: 96% !important; /* Perbesar dialog keranjang agar input lebih nyaman */
+    max-width: 560px !important;
+    background-color: #1a1a1a !important; /* Warna gelap mewah bertema dark */
+    border: 1px solid #333 !important;
+    border-radius: 16px !important; /* Sudut kotak melengkung rapi di semua sisi */
+    padding: 24px !important;
+    max-height: 85vh !important; /* Dialog lebih tinggi, tetapi tetap aman di layar HP */
+    overflow-y: auto !important; /* Aktifkan mode geser atas-bawah khusus di dalam kotak jika barang banyak */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    animation: zoomInPopup 0.2s ease-out !important; /* Efek muncul membesar yang halus */
+  }
+
+  @keyframes zoomInPopup {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .modal-content {
+    width: 96% !important;
+    max-width: 600px !important;
+    max-height: 88vh !important;
+    overflow-y: auto !important;
+    padding: 1.5rem !important;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .content-area {
+    padding-bottom: calc(8.5rem + env(safe-area-inset-bottom));
+  }
+
+  .mobile-floating-checkout-bar {
+    bottom: 130px !important;
+  }
+}
+
+/* Ikon transaksi tertunda: selalu mudah dijangkau dari pojok kiri bawah. */
+.pending-transactions-fab {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 100000;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 46px;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(30, 64, 175, 0.35);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.cart-popup-header,
+.cart-desktop-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  border-bottom: 1px solid #333;
+  padding-bottom: 0.6rem;
+}
+
+.cart-popup-header h4 {
+  margin: 0;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.cart-popup-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.cart-save-held-button,
+.cart-popup-close-button {
+  border: 0;
+  border-radius: 6px;
+  padding: 0.45rem 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cart-save-held-button {
+  border: 1px solid rgba(59, 130, 246, 0.65);
+  background: rgba(59, 130, 246, 0.16);
+  color: #93c5fd;
+}
+
+.cart-popup-close-button {
+  background: transparent;
+  color: #f43f5e;
+}
+
+.pending-transactions-fab:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.pending-transactions-label {
+  font-size: 0.82rem;
+}
+
+.pending-transactions-badge {
+  display: inline-grid;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 0.3rem;
+  place-items: center;
+  border-radius: 999px;
+  background: #fff;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+}
+
+@media screen and (max-width: 768px) {
+  .pending-transactions-fab {
+    left: 0.75rem;
+    bottom: calc(75px + env(safe-area-inset-bottom));
+    width: 50px;
+    height: 50px;
+    min-height: 50px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .pending-transactions-label {
+    display: none;
+  }
+
+  .pending-transactions-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+  }
+}
+
+/* Lihat keranjang HP memakai seluruh layar; scroll hanya di daftar barang. */
+@media screen and (max-width: 768px) {
+  .mobile-cart-popup-overlay {
+    align-items: stretch !important;
+    padding: 0 !important;
+  }
+
+  .mobile-cart-popup-content {
+    width: 100vw !important;
+    max-width: none !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    min-height: 100vh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    padding: calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    pointer-events: auto !important;
+  }
+
+  .mobile-cart-popup-content .cart-container {
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    pointer-events: auto !important;
+  }
+
+  .mobile-cart-popup-content .cart-items-list {
+    min-height: 0 !important;
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "name": "znncashier",
+  "version": "1.0.0",
+  "description": "Smart Retail Checkout System backed by PostgreSQL",
+  "main": "main.js",
+  "scripts": {
+    "start": "node start-dev.js",
+    "migrate:legacy-sqlite": "node backend/migrate-sqlite-to-postgres.js",
+    "migrate:remote-sync": "node backend/migrate-remote-sync.js",
+    "start:frontend": "cd frontend && npm run dev -- --host 0.0.0.0 --port 4173 --strictPort false",
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "pack": "npm run build:frontend && electron-builder --dir",
+    "dist": "npm run build:frontend && electron-builder",
+    "test": "node --test test/*.test.js"
+  },
+  "build": {
+    "appId": "com.znnpos.app",
+    "productName": "ZnnCashier",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "files": [
+      "main.js",
+      "backend/**/*",
+      "frontend/dist/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "electron": "^40.8.0",
+    "electron-builder": "^24.13.3",
+    "wait-on": "^9.0.4"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
+    "cors": "^2.8.6",
+    "dotenv": "^9.0.2",
+    "express": "^4.22.1",
+    "express-rate-limit": "^8.4.1",
+    "html5-qrcode": "^2.3.8",
+    "localtunnel": "^2.0.2",
+    "pg": "^8.23.1",
+    "selfsigned": "^5.5.0",
+    "socket.io": "^4.8.3",
+    "sqlite3": "^5.1.7"
+  }
+}

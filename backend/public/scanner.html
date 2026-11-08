@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZnnCashier Mobile Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface: #1e293b;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .header {
+            text-align: center;
+        }
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .status-card {
+            background: var(--surface);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: 600;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+            transition: all 0.3s ease;
+        }
+        .success { border-left: 4px solid var(--success); }
+        .error { border-left: 4px solid var(--danger); }
+        .neutral { border-left: 4px solid var(--primary); }
+
+        .card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+        }
+
+        #reader {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            border: none !important;
+        }
+        #reader__scan_region {
+            background: black;
+        }
+        #reader__dashboard_section_csr span {
+            color: var(--text-main) !important;
+        }
+        #reader button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: var(--text-muted);
+            margin: 10px 0;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #334155;
+        }
+        .divider:not(:empty)::before { margin-right: .25em; }
+        .divider:not(:empty)::after { margin-left: .25em; }
+
+        .manual-entry {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .manual-entry label {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .input-group input {
+            flex: 1;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            outline: none;
+        }
+        .input-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+        .input-group button {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .input-group button:hover {
+            opacity: 0.9;
+        }
+        
+        .security-warning {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .security-warning code {
+            background: #0f172a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #fca5a5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>ZnnCashier Scanner</h1>
+            <p style="margin: 0; color: var(--text-muted);">Smart Retail Checkout</p>
+        </div>
+
+        <div id="status" class="status-card neutral">Connecting to server...</div>
+
+        <div class="card">
+            <div id="security-msg"></div>
+            
+            <div id="reader"></div>
+
+            <div class="divider">OR</div>
+
+            <div class="manual-entry">
+                <label for="manual-barcode">Manual Barcode Entry</label>
+                <div class="input-group">
+                    <input type="text" id="manual-barcode" placeholder="Enter barcode number..." autocomplete="off">
+                    <button onclick="submitManualBarcode()">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const channel = new URLSearchParams(window.location.search).get('channel') || '';
+        const storeId = new URLSearchParams(window.location.search).get('store') || '';
+        const socket = channel && storeId ? io({ auth: { role: 'scanner', channel, storeId } }) : null;
+        const statusEl = document.getElementById('status');
+        const manualInput = document.getElementById('manual-barcode');
+
+        if (!socket) {
+            statusEl.textContent = '🔒 Link scanner belum dipasangkan ke kasir';
+            statusEl.className = 'status-card error';
+            document.getElementById('security-msg').innerHTML = '<div class="security-warning">Buka scanner dari link yang dibuat oleh POS agar barcode masuk ke kasir yang benar.</div>';
+        }
+
+        // Audio context for beep sound
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const beepContext = AudioContext ? new AudioContext() : null;
+
+        function playBeep() {
+            if (!beepContext) return;
+            try {
+                const oscillator = beepContext.createOscillator();
+                const gainNode = beepContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(beepContext.destination);
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, beepContext.currentTime);
+                gainNode.gain.setValueAtTime(0.5, beepContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, beepContext.currentTime + 0.1);
+                oscillator.start(beepContext.currentTime);
+                oscillator.stop(beepContext.currentTime + 0.1);
+            } catch (e) {
+                console.log('Audio playback failed');
+            }
+        }
+
+        socket?.on('connect', () => {
+            statusEl.textContent = '🟢 Connected & Ready';
+            statusEl.className = 'status-card success';
+        });
+
+        socket?.on('connect_error', (error) => {
+            statusEl.textContent = `🔴 ${error.message || 'Sesi scanner ditolak'}`;
+            statusEl.className = 'status-card error';
+        });
+
+        socket?.on('disconnect', () => {
+            statusEl.textContent = '🔴 Disconnected';
+            statusEl.className = 'status-card error';
+        });
+
+        function sendBarcode(barcode) {
+            if (!socket?.connected) {
+                statusEl.textContent = '🔴 Scanner belum terhubung ke kasir';
+                statusEl.className = 'status-card error';
+                return;
+            }
+            socket.emit('barcode_scanned', { barcode: barcode });
+            
+            statusEl.textContent = `✅ Scanned: ${barcode}`;
+            statusEl.className = 'status-card success';
+            
+            // Flash effect on status
+            statusEl.style.transform = 'scale(1.05)';
+            setTimeout(() => statusEl.style.transform = 'scale(1)', 200);
+
+            if ("vibrate" in navigator) {
+                navigator.vibrate(100);
+            }
+            playBeep();
+        }
+
+        // To prevent double scanning of the same barcode too quickly
+        let lastScanned = '';
+        let lastScannedTime = 0;
+
+        function onScanSuccess(decodedText, decodedResult) {
+            const now = Date.now();
+            // Prevent scanning same code within 2 seconds
+            if (decodedText === lastScanned && (now - lastScannedTime) < 2000) {
+                return;
+            }
+            lastScanned = decodedText;
+            lastScannedTime = now;
+            sendBarcode(decodedText);
+        }
+
+        function submitManualBarcode() {
+            const val = manualInput.value.trim();
+            if (val) {
+                sendBarcode(val);
+                manualInput.value = ''; // clear
+            }
+        }
+
+        // Allow pressing Enter in input
+        manualInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                submitManualBarcode();
+            }
+        });
+
+        // Initialize Scanner
+        if (socket) {
+            let html5QrcodeScanner = new Html5QrcodeScanner(
+                "reader",
+                { fps: 10, qrbox: {width: 250, height: 250} },
+                /* verbose= */ false);
+
+            html5QrcodeScanner.render(onScanSuccess, (error) => {});
+        }
+
+        // Check for secure context
+        if (window.isSecureContext === false) {
+            const secMsg = document.getElementById('security-msg');
+            secMsg.innerHTML = `
+                <div class="security-warning">
+                    <strong>⚠️ Camera Blocked by Browser</strong><br/>
+                    Browsers require HTTPS for camera access. You can still use the <strong>Manual Entry</strong> below, OR fix the camera by:<br/><br/>
+                    1. Ensure you are accessing this page via <strong>https://</strong><br/>
+                    2. If you see a privacy warning, click <strong>Advanced</strong> -> <strong>Proceed to site (unsafe)</strong>.
+                </div>`;
+        }
+    </script>
+</body>
+</html>
