@@ -5,6 +5,34 @@ import api from '../api';
 import { useAuth } from '../auth/useAuth';
 import { formatNumber } from '../utils/numberFormat';
 
+const slugifyStoreCode = (value) => String(value || '')
+  .normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+  .slice(0, 32);
+
+const normalizeOwnerUsername = (value) => String(value || '')
+  .trim()
+  .toLowerCase()
+  .replace(/[^a-z0-9._-]+/g, '-');
+
+const getAvailableStoreCode = (preferredCode, storeName, stores) => {
+  const base = slugifyStoreCode(preferredCode || storeName);
+  if (!base) return '';
+
+  const usedCodes = new Set(stores.map((store) => String(store.code || '').toLowerCase()));
+  if (!usedCodes.has(base)) return base;
+
+  for (let suffix = 2; suffix < 1000; suffix += 1) {
+    const suffixText = `-${suffix}`;
+    const candidate = `${base.slice(0, 32 - suffixText.length)}${suffixText}`;
+    if (!usedCodes.has(candidate)) return candidate;
+  }
+  return '';
+};
+
 export default function Stores() {
   const { user } = useAuth();
   const canManageStores = user?.role === 'super_admin' && (user?.platformAdmin || user?.storeCode === 'utama');
@@ -69,8 +97,41 @@ export default function Stores() {
     event.preventDefault();
     setSaving(true);
     setCreatedOwner(null);
+
+    const name = String(form.name || '').trim();
+    const typedCode = String(form.code || '').trim();
+    const code = typedCode ? slugifyStoreCode(typedCode) : getAvailableStoreCode('', name, stores);
+    const ownerUsername = normalizeOwnerUsername(form.owner_username || `owner-${code}`);
+    const ownerPin = String(form.owner_pin || '').replace(/\D/g, '');
+
+    if (!name) {
+      toast.error('Nama toko wajib diisi');
+      setSaving(false);
+      return;
+    }
+    if (!code || !/^[a-z0-9][a-z0-9-]{2,31}$/.test(code)) {
+      toast.error('Kode toko tidak valid. Gunakan minimal 3 huruf/angka.');
+      setSaving(false);
+      return;
+    }
+    if (!/^[a-z0-9][a-z0-9._-]{2,49}$/.test(ownerUsername)) {
+      toast.error('Username pemilik tidak valid');
+      setSaving(false);
+      return;
+    }
+    if (!/^\d{4,12}$/.test(ownerPin)) {
+      toast.error('PIN pemilik harus 4-12 angka');
+      setSaving(false);
+      return;
+    }
+
     try {
-      const response = await api.post('/stores', form);
+      const response = await api.post('/stores', {
+        code,
+        name,
+        owner_username: ownerUsername,
+        owner_pin: ownerPin
+      });
       setStores((current) => [...current, response.data.store]);
       setSelectedStoreId(String(response.data.store.id));
       setCreatedOwner({ store: response.data.store, owner: response.data.owner });
@@ -181,10 +242,10 @@ export default function Stores() {
       <div style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', marginBottom: '1rem' }}>
         <h3 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><UserPlus size={20} /> Tambah Toko dan Pemilik</h3>
         <form onSubmit={handleCreate} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', alignItems: 'end' }}>
-          <label className="input-label">Kode Toko<input className="modal-input" value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value.toLowerCase() })} minLength="3" maxLength="32" placeholder="contoh: toko-baru" required /></label>
-          <label className="input-label">Nama Toko<input className="modal-input" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} maxLength="120" placeholder="Contoh: Toko Makmur" required /></label>
-          <label className="input-label">Username Pemilik<input className="modal-input" value={form.owner_username} onChange={(event) => setForm({ ...form, owner_username: event.target.value.toLowerCase() })} minLength="3" maxLength="50" placeholder="owner" required /></label>
-          <label className="input-label">PIN Pemilik<input className="modal-input" type="password" inputMode="numeric" value={form.owner_pin} onChange={(event) => setForm({ ...form, owner_pin: event.target.value })} minLength="4" maxLength="12" placeholder="4–12 angka" required /></label>
+          <label className="input-label">Kode Toko<input className="modal-input" value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value })} maxLength="64" placeholder="kosongkan untuk otomatis" /><small style={{ color: 'var(--text-secondary)' }}>Boleh dikosongkan; otomatis dibuat dari nama toko.</small></label>
+          <label className="input-label">Nama Toko<input className="modal-input" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} maxLength="120" placeholder="Contoh: Toko Makmur" required /><small style={{ color: 'var(--text-secondary)' }}>Nama boleh memakai spasi dan huruf besar.</small></label>
+          <label className="input-label">Username Pemilik<input className="modal-input" value={form.owner_username} onChange={(event) => setForm({ ...form, owner_username: event.target.value })} maxLength="50" placeholder="kosongkan untuk owner-kode" /><small style={{ color: 'var(--text-secondary)' }}>Jika kosong, dibuat otomatis.</small></label>
+          <label className="input-label">PIN Pemilik<input className="modal-input" type="password" inputMode="numeric" value={form.owner_pin} onChange={(event) => setForm({ ...form, owner_pin: event.target.value })} maxLength="12" placeholder="4–12 angka" required /></label>
           <button type="submit" className="btn btn-primary" disabled={saving}><UserPlus size={18} /> {saving ? 'Membuat...' : 'Buat Toko'}</button>
         </form>
         {createdOwner && (
