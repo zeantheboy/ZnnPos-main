@@ -158,6 +158,87 @@ app.get('/api/products/:barcode', requireRole(['super_admin', 'admin', 'cashier'
   });
 });
 
+// Penghapusan massal hanya boleh dilakukan oleh Super Admin toko yang sedang aktif.
+// Produk yang memiliki riwayat transaksi diarsipkan agar laporan lama tetap aman;
+// produk tanpa riwayat transaksi dapat dihapus permanen.
+app.post('/api/products/bulk-delete', requireRole(['super_admin']), async (req, res) => {
+  const deleteAll = req.body?.all === true;
+  const rawProductIds = Array.isArray(req.body?.product_ids) ? req.body.product_ids : [];
+  const productIds = [...new Set(rawProductIds.map(parsePositiveId).filter(Boolean))];
+  const confirmation = String(req.body?.confirmation || '').trim();
+  const pin = String(req.body?.pin || '');
+
+  if (!deleteAll && productIds.length === 0) {
+    return res.status(400).json({ error: 'Pilih minimal satu produk' });
+  }
+  if (deleteAll && confirmation !== 'HAPUS SEMUA') {
+    return res.status(400).json({ error: 'Konfirmasi penghapusan semua produk tidak sesuai' });
+  }
+  if (!/^\d{4,12}$/.test(pin)) {
+    return res.status(400).json({ error: 'PIN Super Admin wajib diisi' });
+  }
+
+  try {
+    const currentUser = await getDbRow('SELECT password_hash FROM users WHERE id = ?', [req.user.id]);
+    const legacyPinHash = await getSetting('admin_pin_hash');
+    const validAccountPin = currentUser && verifyAdminPin(pin, currentUser.password_hash);
+    const validLegacyPin = legacyPinHash && verifyAdminPin(pin, legacyPinHash);
+    if (!currentUser || (!validAccountPin && !validLegacyPin)) {
+      return res.status(401).json({ error: 'PIN Super Admin salah' });
+    }
+
+    const result = await getDb().transaction(async (database) => {
+      const products = deleteAll
+        ? await database.all('SELECT id, name FROM products WHERE active = 1 ORDER BY id')
+        : await database.all(
+          `SELECT id, name FROM products WHERE active = 1 AND id IN (${productIds.map(() => '?').join(', ')}) ORDER BY id`,
+          productIds
+        );
+
+      if (products.length === 0) throw checkoutError('Tidak ada produk aktif yang dapat diproses', 404);
+
+      const archived = [];
+      const deleted = [];
+      for (const product of products) {
+        const usage = await database.get('SELECT COUNT(*)::int AS total FROM transaction_items WHERE product_id = ?', [product.id]);
+        if (Number(usage?.total || 0) > 0) {
+          await database.run('UPDATE products SET active = 0 WHERE id = ? AND active = 1', [product.id]);
+          archived.push(product.name);
+        } else {
+          await database.run('DELETE FROM products WHERE id = ? AND active = 1', [product.id]);
+          deleted.push(product.name);
+        }
+      }
+
+      await database.run(
+        'INSERT INTO audit_logs (user_id, action, entity, entity_id, after_data, reason) VALUES (?, ?, ?, ?, ?::jsonb, ?)',
+        [
+          req.user.id,
+          'bulk_delete',
+          'product',
+          deleteAll ? 'all-active' : 'selected',
+          JSON.stringify({ scope: deleteAll ? 'all' : 'selected', requestedCount: products.length, archivedCount: archived.length, deletedCount: deleted.length }),
+          deleteAll ? 'Penghapusan semua produk aktif oleh Super Admin' : 'Penghapusan produk terpilih oleh Super Admin'
+        ]
+      );
+
+      return { processedCount: products.length, archived, deleted };
+    });
+
+    return res.json({
+      success: true,
+      scope: deleteAll ? 'all' : 'selected',
+      processedCount: result.processedCount,
+      archivedCount: result.archived.length,
+      deletedCount: result.deleted.length,
+      archived: result.archived,
+      deleted: result.deleted
+    });
+  } catch (err) {
+    return res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
 app.get('/api/products/:id/stock-movements', requireRole(['super_admin', 'admin', 'cashier']), async (req, res) => {
   const productId = Number(req.params.id);
   const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);

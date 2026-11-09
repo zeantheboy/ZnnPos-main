@@ -36,6 +36,11 @@ function Products({ searchQuery = '', productScanRequest = null, onProductScanHa
   const [historyLoading, setHistoryLoading] = useState(false);
   const [deleteProduct, setDeleteProduct] = useState(null);
   const [deleteSaving, setDeleteSaving] = useState(false);
+  const [selectedProductIds, setSelectedProductIds] = useState([]);
+  const [bulkDeleteScope, setBulkDeleteScope] = useState(null);
+  const [bulkDeleteConfirmation, setBulkDeleteConfirmation] = useState('');
+  const [bulkDeletePin, setBulkDeletePin] = useState('');
+  const [bulkDeleteSaving, setBulkDeleteSaving] = useState(false);
   const [productStatus, setProductStatus] = useState('active');
   const [restoreProduct, setRestoreProduct] = useState(null);
   const [restoreSaving, setRestoreSaving] = useState(false);
@@ -48,6 +53,7 @@ function Products({ searchQuery = '', productScanRequest = null, onProductScanHa
   const [barcodePrintQuantities, setBarcodePrintQuantities] = useState({});
   
   const visibleProducts = filterAndSortProducts(products, searchQuery);
+  const canBulkDelete = user?.role === 'super_admin' && productStatus === 'active';
   const barcodePrintProducts = products.filter((product) => String(product.barcode || '').trim());
   const filteredBarcodePrintProducts = barcodePrintProducts.filter((product) => {
     const query = barcodePrintSearch.trim().toLocaleLowerCase('id-ID');
@@ -77,6 +83,10 @@ function Products({ searchQuery = '', productScanRequest = null, onProductScanHa
     fetchProducts(productStatus);
     fetchSuppliers();
   }, [fetchProducts, fetchSuppliers, productStatus]);
+
+  useEffect(() => {
+    setSelectedProductIds([]);
+  }, [productStatus]);
 
   useEffect(() => {
     const socketUrl = window.location.protocol === 'https:'
@@ -306,6 +316,72 @@ function Products({ searchQuery = '', productScanRequest = null, onProductScanHa
     }
   };
 
+  const toggleProductSelection = (productId) => {
+    const normalizedId = String(productId);
+    setSelectedProductIds((current) => current.includes(normalizedId)
+      ? current.filter((id) => id !== normalizedId)
+      : [...current, normalizedId]);
+  };
+
+  const toggleVisibleProductSelection = () => {
+    const visibleIds = visibleProducts.map((product) => String(product.id));
+    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedProductIds.includes(id));
+    setSelectedProductIds((current) => allSelected
+      ? current.filter((id) => !visibleIds.includes(id))
+      : [...new Set([...current, ...visibleIds])]);
+  };
+
+  const openBulkDeleteConfirm = (scope) => {
+    if (!canBulkDelete) return;
+    if (scope === 'selected' && selectedProductIds.length === 0) {
+      toast.error('Pilih minimal satu produk terlebih dahulu');
+      return;
+    }
+    if (scope === 'all' && products.length === 0) {
+      toast.error('Belum ada produk aktif untuk dihapus');
+      return;
+    }
+    setBulkDeleteScope(scope);
+    setBulkDeleteConfirmation('');
+    setBulkDeletePin('');
+  };
+
+  const handleBulkDelete = async (event) => {
+    event.preventDefault();
+    if (!bulkDeleteScope) return;
+    if (bulkDeleteScope === 'all' && bulkDeleteConfirmation.trim() !== 'HAPUS SEMUA') {
+      toast.error('Ketik HAPUS SEMUA untuk melanjutkan');
+      return;
+    }
+    if (!/^\d{4,12}$/.test(bulkDeletePin)) {
+      toast.error('Masukkan PIN Super Admin 4-12 angka');
+      return;
+    }
+
+    setBulkDeleteSaving(true);
+    try {
+      const response = await api.post('/products/bulk-delete', {
+        all: bulkDeleteScope === 'all',
+        product_ids: bulkDeleteScope === 'selected' ? selectedProductIds.map(Number) : [],
+        confirmation: bulkDeleteConfirmation,
+        pin: bulkDeletePin
+      });
+      const messages = [];
+      if (response.data.archivedCount) messages.push(`${formatNumber(response.data.archivedCount)} diarsipkan`);
+      if (response.data.deletedCount) messages.push(`${formatNumber(response.data.deletedCount)} dihapus permanen`);
+      toast.success(messages.join(', ') || 'Produk berhasil diproses');
+      setSelectedProductIds([]);
+      setBulkDeleteScope(null);
+      setBulkDeleteConfirmation('');
+      setBulkDeletePin('');
+      await fetchProducts('active');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Gagal memproses penghapusan produk');
+    } finally {
+      setBulkDeleteSaving(false);
+    }
+  };
+
   const handleRestoreProduct = async (event) => {
     event.preventDefault();
     if (!restoreProduct) {
@@ -497,6 +573,26 @@ function Products({ searchQuery = '', productScanRequest = null, onProductScanHa
         )}
       </div>
 
+      {canBulkDelete && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', marginBottom: '1rem', padding: '0.75rem', border: '1px solid rgba(244, 63, 94, 0.35)', borderRadius: '10px', background: 'rgba(244, 63, 94, 0.06)' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontWeight: 700, fontSize: '13px', marginRight: 'auto' }}>
+            <input
+              type="checkbox"
+              checked={visibleProducts.length > 0 && visibleProducts.every((product) => selectedProductIds.includes(String(product.id)))}
+              onChange={toggleVisibleProductSelection}
+              style={{ width: '18px', height: '18px', accentColor: '#f43f5e' }}
+            />
+            Pilih produk ({formatNumber(selectedProductIds.length)})
+          </label>
+          <button type="button" onClick={() => openBulkDeleteConfirm('selected')} disabled={selectedProductIds.length === 0} style={{ border: 'none', borderRadius: '7px', padding: '9px 12px', background: selectedProductIds.length ? '#f43f5e' : '#94a3b8', color: '#fff', fontWeight: 700, cursor: selectedProductIds.length ? 'pointer' : 'not-allowed' }}>
+            <Trash2 size={15} style={{ verticalAlign: 'middle', marginRight: '5px' }} /> Hapus Terpilih
+          </button>
+          <button type="button" onClick={() => openBulkDeleteConfirm('all')} disabled={products.length === 0} style={{ border: '1px solid #f43f5e', borderRadius: '7px', padding: '8px 12px', background: 'transparent', color: '#f43f5e', fontWeight: 700, cursor: products.length ? 'pointer' : 'not-allowed' }}>
+            Hapus Semua Produk
+          </button>
+        </div>
+      )}
+
       {showAddForm && (
         <div className="modal-overlay" onClick={() => { stopScanner(); setShowAddForm(false); }}>
           <form className="modal-content product-add-modal" onSubmit={handleAddProduct} onClick={(event) => event.stopPropagation()}>
@@ -598,11 +694,14 @@ function Products({ searchQuery = '', productScanRequest = null, onProductScanHa
             
             {/* BAGIAN ATAS: INFO PRODUK */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', minWidth: 0 }}>
+                {canBulkDelete && <input type="checkbox" checked={selectedProductIds.includes(String(p.id))} onChange={() => toggleProductSelection(p.id)} aria-label={`Pilih produk ${p.name}`} style={{ width: '18px', height: '18px', marginTop: '2px', flexShrink: 0, accentColor: '#f43f5e' }} />}
+                <div>
                 <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{p.name}</div>
                 <div style={{ fontSize: '12px', color: '#888' }}>Barcode: {p.barcode || '-'}</div>
                 {p.supplier_name && <div style={{ fontSize: '11px', color: '#888' }}>Supplier: {p.supplier_name}</div>}
                 <div style={{ fontSize: '11px', color: '#888' }}>Modal: Rp {formatNumber(p.cost_price || 0)} · Untung: Rp {formatNumber(Math.max(Number(p.price) - Number(p.cost_price || 0), 0))}</div>
+                </div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontWeight: 'bold', color: '#3b82f6', fontSize: '14px' }}>Rp {formatNumber(p.price)}</div>
@@ -756,6 +855,38 @@ function Products({ searchQuery = '', productScanRequest = null, onProductScanHa
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button type="button" onClick={() => setDeleteProduct(null)} className="btn" style={{ flex: 1 }} disabled={deleteSaving}>Batal</button>
                 <button type="submit" className="btn" style={{ flex: 1, background: '#f43f5e', color: '#fff' }} disabled={deleteSaving}>{deleteSaving ? 'Memproses...' : productStatus === 'archived' ? 'Hapus Permanen' : 'Hapus'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {bulkDeleteScope && (
+        <div className="modal-overlay" onClick={() => !bulkDeleteSaving && setBulkDeleteScope(null)}>
+          <div className="modal-content" style={{ maxWidth: '480px' }} onClick={(event) => event.stopPropagation()}>
+            <h2 style={{ marginTop: 0, color: '#f43f5e', display: 'flex', alignItems: 'center', gap: '8px' }}><Trash2 size={21} /> {bulkDeleteScope === 'all' ? 'Hapus Semua Produk' : 'Hapus Produk Terpilih'}</h2>
+            <p style={{ color: 'var(--text-secondary)' }}>
+              {bulkDeleteScope === 'all'
+                ? <>Tindakan ini memproses <strong>{formatNumber(products.length)} produk aktif</strong> pada toko yang sedang login.</>
+                : <>Tindakan ini memproses <strong>{formatNumber(selectedProductIds.length)} produk terpilih</strong> pada toko yang sedang login.</>}
+            </p>
+            <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--text-secondary)', fontSize: '0.82rem', marginBottom: '1rem' }}>
+              Produk yang punya riwayat transaksi akan <strong>diarsipkan</strong>. Produk yang belum pernah dipakai dapat <strong>dihapus permanen</strong>.
+            </div>
+            <form onSubmit={handleBulkDelete} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {bulkDeleteScope === 'all' && (
+                <label className="input-label">
+                  Konfirmasi penghapusan
+                  <input className="modal-input" value={bulkDeleteConfirmation} onChange={(event) => setBulkDeleteConfirmation(event.target.value)} placeholder="Ketik HAPUS SEMUA" autoFocus required />
+                </label>
+              )}
+              <label className="input-label">
+                PIN Super Admin
+                <input className="modal-input" type="password" inputMode="numeric" value={bulkDeletePin} onChange={(event) => setBulkDeletePin(event.target.value)} placeholder="Masukkan PIN Super Admin" minLength="4" maxLength="12" required autoFocus={bulkDeleteScope === 'selected'} />
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button type="button" onClick={() => setBulkDeleteScope(null)} className="btn" style={{ flex: 1 }} disabled={bulkDeleteSaving}>Batal</button>
+                <button type="submit" className="btn" style={{ flex: 1, background: '#f43f5e', color: '#fff' }} disabled={bulkDeleteSaving}>{bulkDeleteSaving ? 'Memproses...' : 'Konfirmasi Hapus'}</button>
               </div>
             </form>
           </div>
