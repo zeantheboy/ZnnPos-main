@@ -171,9 +171,10 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    const socketUrl = window.location.protocol === 'https:'
+    const configuredSocketUrl = String(import.meta.env.VITE_SOCKET_URL || '').trim().replace(/\/$/, '');
+    const socketUrl = configuredSocketUrl || (window.location.protocol === 'https:'
       ? window.location.origin
-      : `http://${window.location.hostname || 'localhost'}:3001`;
+      : `http://${window.location.hostname || 'localhost'}:3001`);
     const socket = io(socketUrl, {
       auth: {
         role: 'pos',
