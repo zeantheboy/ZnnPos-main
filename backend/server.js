@@ -570,6 +570,22 @@ const getAuthSession = (req) => {
   return getStoredAuthSession(token);
 };
 
+const refreshUserSessions = (user) => {
+  for (const session of authSessions.values()) {
+    if (Number(session.user?.id) === Number(user.id)) {
+      session.user = sanitizeUser(user);
+    }
+  }
+};
+
+const removeUserSessions = (userId) => {
+  for (const [token, session] of authSessions.entries()) {
+    if (Number(session.user?.id) === Number(userId)) {
+      authSessions.delete(token);
+    }
+  }
+};
+
 function requireRole(roles) {
   return async (req, res, next) => {
     const session = getAuthSession(req);
@@ -599,7 +615,12 @@ function requireRole(roles) {
 }
 
 const requirePlatformAdmin = (req, res, next) => requireRole(['super_admin'])(req, res, () => {
-  if (!req.user.platformAdmin) return res.status(403).json({ error: 'Akses hanya untuk pengelola platform' });
+  // Super Admin pada Toko Utama adalah pengelola platform. Pemeriksaan kode
+  // toko ini juga menjaga kompatibilitas dengan akun lama yang dibuat sebelum
+  // kolom is_platform_admin tersedia atau belum terisi dengan benar.
+  if (!req.user.platformAdmin && req.user.storeCode !== 'utama') {
+    return res.status(403).json({ error: 'Akses hanya untuk Super Admin Toko Utama' });
+  }
   return next();
 });
 
@@ -1502,11 +1523,12 @@ app.post('/api/users', requireRole(['super_admin']), async (req, res) => {
 });
 
 app.patch('/api/users/:id', requireRole(['super_admin']), async (req, res) => {
-  const userId = Number(req.params.id);
+  const userId = parsePositiveId(req.params.id);
+  const nextUsername = req.body?.username === undefined ? null : normalizeUsername(req.body.username);
   const nextRole = req.body?.role === undefined ? null : String(req.body.role);
   const nextActive = req.body?.active === undefined ? null : Boolean(req.body.active);
   const nextPin = req.body?.pin === undefined ? null : String(req.body.pin);
-  if (!Number.isInteger(userId) || userId <= 0 || (nextRole !== null && !AUTH_ROLES.has(nextRole)) || (nextPin !== null && !/^\d{4,12}$/.test(nextPin))) {
+  if (!userId || (nextUsername !== null && !isValidUsername(nextUsername)) || (nextRole !== null && !AUTH_ROLES.has(nextRole)) || (nextPin !== null && !/^\d{4,12}$/.test(nextPin))) {
     return res.status(400).json({ error: 'Perubahan pengguna tidak valid' });
   }
 
@@ -1557,6 +1579,7 @@ app.patch('/api/users/:id', requireRole(['super_admin']), async (req, res) => {
 
       const fields = [];
       const values = [];
+      if (nextUsername !== null) { fields.push('username = ?'); values.push(nextUsername); }
       if (nextRole !== null) { fields.push('role = ?'); values.push(nextRole); }
       if (nextActive !== null) { fields.push('active = ?'); values.push(nextActive ? 1 : 0); }
       if (nextPin !== null) { fields.push('password_hash = ?'); values.push(hashAdminPin(nextPin)); }
@@ -1575,8 +1598,61 @@ app.patch('/api/users/:id', requireRole(['super_admin']), async (req, res) => {
       );
       return { current, updated };
     });
+    refreshUserSessions(updated);
     await writeAuditLog({ userId: req.user.id, action: 'update', entity: 'user', entityId: userId, beforeData: sanitizeUser(current), afterData: sanitizeUser(updated) });
     return res.json({ user: sanitizeUser(updated) });
+  } catch (err) {
+    if (String(err.message).includes('duplicate key')) return res.status(409).json({ error: 'Nama pengguna sudah digunakan di toko ini' });
+    return res.status(err.status || 500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/users/:id', requireRole(['super_admin']), async (req, res) => {
+  const userId = parsePositiveId(req.params.id);
+  if (!userId) return res.status(400).json({ error: 'ID pengguna tidak valid' });
+
+  try {
+    const deletedUser = await getDb().transaction(async (database) => {
+      const current = await database.get(
+        `SELECT u.id, u.username, u.role, u.active, u.is_platform_admin, u.store_id, u.created_at, u.last_login_at,
+                s.code AS store_code, s.name AS store_name
+         FROM users u INNER JOIN stores s ON s.id = u.store_id WHERE u.id = ?`,
+        [userId]
+      );
+      if (!current) {
+        const notFoundError = new Error('Pengguna tidak ditemukan');
+        notFoundError.status = 404;
+        throw notFoundError;
+      }
+      if (userId === req.user.id) {
+        const selfDeleteError = new Error('Anda tidak dapat menghapus akun sendiri');
+        selfDeleteError.status = 400;
+        throw selfDeleteError;
+      }
+
+      if (current.role === 'super_admin' && Number(current.active) === 1) {
+        const count = await database.get("SELECT COUNT(*)::int AS total FROM users WHERE role = 'super_admin' AND active = 1 AND id <> ?", [userId]);
+        if (Number(count?.total || 0) < 1) {
+          const lastAdminError = new Error('Minimal harus ada satu Super Admin aktif');
+          lastAdminError.status = 400;
+          throw lastAdminError;
+        }
+      }
+
+      const shiftCount = await database.get('SELECT COUNT(*)::int AS total FROM shifts WHERE user_id = ?', [userId]);
+      if (Number(shiftCount?.total || 0) > 0) {
+        const historyError = new Error('Akun ini memiliki riwayat shift. Gunakan Nonaktifkan agar riwayat transaksi tetap aman.');
+        historyError.status = 409;
+        throw historyError;
+      }
+
+      await database.run('DELETE FROM users WHERE id = ?', [userId]);
+      return current;
+    });
+
+    removeUserSessions(userId);
+    await writeAuditLog({ userId: req.user.id, action: 'delete', entity: 'user', entityId: userId, beforeData: sanitizeUser(deletedUser), reason: `Akun ${deletedUser.username} dihapus` });
+    return res.json({ success: true, userId });
   } catch (err) {
     return res.status(err.status || 500).json({ error: err.message });
   }
