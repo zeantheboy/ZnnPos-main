@@ -449,6 +449,13 @@ const AUTH_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
 const normalizeUsername = (value) => String(value || '').trim().toLowerCase();
 const normalizeStoreCode = (value) => String(value || '').trim().toLowerCase();
+const slugifyStoreCode = (value) => String(value || '')
+  .normalize('NFKD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+  .slice(0, 32);
 
 const normalizeContactField = (value, maxLength) => {
   const text = String(value ?? '').trim();
@@ -775,9 +782,9 @@ app.get('/api/stores', requirePlatformAdmin, async (req, res) => {
 });
 
 app.post('/api/stores', requirePlatformAdmin, async (req, res) => {
-  const code = normalizeStoreCode(req.body?.code);
   const name = String(req.body?.name || '').trim().slice(0, 120);
-  const ownerUsername = normalizeUsername(req.body?.owner_username);
+  const code = slugifyStoreCode(req.body?.code || name);
+  const ownerUsername = normalizeUsername(req.body?.owner_username || `owner-${code}`);
   const ownerPin = String(req.body?.owner_pin || '');
   if (!/^[a-z0-9][a-z0-9-]{2,31}$/.test(code) || !name || !isValidUsername(ownerUsername) || !/^\d{4,12}$/.test(ownerPin)) {
     return res.status(400).json({ error: 'Kode toko, nama toko, username pemilik, dan PIN tidak valid' });
@@ -785,6 +792,9 @@ app.post('/api/stores', requirePlatformAdmin, async (req, res) => {
   if (code === 'utama') return res.status(400).json({ error: 'Kode toko utama tidak dapat digunakan kembali' });
 
   try {
+    const existingStore = await getDbRow('SELECT id FROM stores WHERE code = ?', [code]);
+    if (existingStore) return res.status(409).json({ error: `Kode toko "${code}" sudah digunakan. Gunakan kode lain.` });
+
     const result = await getDb().transaction(async (database) => {
       const licenseKey = `ZK-${crypto.randomBytes(5).toString('hex').toUpperCase()}`;
       const storeInsert = await database.run(
@@ -819,7 +829,16 @@ app.post('/api/stores', requirePlatformAdmin, async (req, res) => {
     });
     return res.status(201).json({ store: sanitizeStore(result.store), owner: sanitizeUser({ ...result.owner, store_code: code, store_name: name }) });
   } catch (err) {
-    if (String(err.message).includes('duplicate key')) return res.status(409).json({ error: 'Kode toko atau username pemilik sudah digunakan' });
+    if (String(err.message).includes('duplicate key')) {
+      const duplicateText = `${err.constraint || ''} ${err.detail || ''} ${err.message || ''}`.toLowerCase();
+      if (duplicateText.includes('code') || duplicateText.includes('stores')) {
+        return res.status(409).json({ error: `Kode toko "${code}" sudah digunakan. Gunakan kode lain.` });
+      }
+      if (duplicateText.includes('username')) {
+        return res.status(409).json({ error: `Username pemilik "${ownerUsername}" sudah digunakan di toko ini.` });
+      }
+      return res.status(409).json({ error: 'Data toko sudah digunakan. Periksa kode toko dan username pemilik.' });
+    }
     return res.status(500).json({ error: err.message });
   }
 });
