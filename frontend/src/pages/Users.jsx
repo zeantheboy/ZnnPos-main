@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { UserPlus, UserCog } from 'lucide-react';
+import { Check, Pencil, Trash2, UserPlus, UserCog, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api';
 import { useAuth } from '../auth/useAuth';
@@ -10,7 +10,7 @@ const roleLabels = {
   cashier: 'Kasir'
 };
 export default function Users() {
-  const { user } = useAuth();
+  const { user, updateUser: updateAuthUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
@@ -18,6 +18,9 @@ export default function Users() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userLimit, setUserLimit] = useState(3);
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [editingUsername, setEditingUsername] = useState('');
+  const [deletingUserId, setDeletingUserId] = useState(null);
   const activeUserCount = users.filter((item) => item.active).length;
   const activeLimitReached = activeUserCount >= userLimit;
 
@@ -57,10 +60,56 @@ export default function Users() {
   const updateUser = async (target, changes) => {
     try {
       const response = await api.patch(`/users/${target.id}`, changes);
-      setUsers((current) => current.map((item) => item.id === target.id ? response.data.user : item));
+      setUsers((current) => current
+        .map((item) => item.id === target.id ? response.data.user : item)
+        .sort((a, b) => a.username.localeCompare(b.username)));
+      if (target.id === user.id) updateAuthUser(response.data.user);
       toast.success('Pengguna berhasil diperbarui');
+      return response.data.user;
     } catch (error) {
       toast.error(error.response?.data?.error || 'Gagal memperbarui pengguna');
+      return null;
+    }
+  };
+
+  const beginRename = (target) => {
+    setEditingUserId(target.id);
+    setEditingUsername(target.username);
+  };
+
+  const cancelRename = () => {
+    setEditingUserId(null);
+    setEditingUsername('');
+  };
+
+  const saveRename = async (target) => {
+    const nextUsername = editingUsername.trim().toLowerCase();
+    if (!/^[a-z0-9][a-z0-9._-]{2,49}$/.test(nextUsername)) {
+      toast.error('Nama pengguna harus 3–50 karakter: huruf kecil, angka, titik, garis bawah, atau tanda hubung');
+      return;
+    }
+    const updated = await updateUser(target, { username: nextUsername });
+    if (updated) cancelRename();
+  };
+
+  const deleteUser = async (target) => {
+    if (target.id === user.id) return;
+    if (!window.confirm(`Hapus akun "${target.username}"? Akun yang memiliki riwayat shift tidak akan dihapus agar data transaksi tetap aman.`)) return;
+
+    setDeletingUserId(target.id);
+    try {
+      await api.delete(`/users/${target.id}`);
+      setUsers((current) => current.filter((item) => item.id !== target.id));
+      toast.success('Akun berhasil dihapus');
+    } catch (error) {
+      const message = error.response?.data?.error || 'Gagal menghapus akun';
+      if (error.response?.status === 409 && window.confirm(`${message}\n\nNonaktifkan akun ini sekarang?`)) {
+        await updateUser(target, { active: false });
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -97,13 +146,37 @@ export default function Users() {
 
       <div style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', overflowX: 'auto' }}>
         <h3 style={{ margin: '0 0 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><UserCog size={20} /> Daftar Pengguna</h3>
+        <p style={{ margin: '0 0 1rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+          Gunakan <strong>Ubah nama</strong> untuk mengganti username login. Tombol <strong>Hapus akun</strong> menghapus akun yang belum memiliki riwayat shift; akun ber-riwayat akan ditawarkan untuk dinonaktifkan.
+        </p>
         {loading ? <div style={{ color: 'var(--text-secondary)' }}>Memuat pengguna...</div> : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '620px' }}>
-            <thead><tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}><th style={{ padding: '0.7rem 0.4rem' }}>Username</th><th style={{ padding: '0.7rem 0.4rem' }}>Role</th><th style={{ padding: '0.7rem 0.4rem' }}>Status</th><th style={{ padding: '0.7rem 0.4rem' }}>Aksi</th></tr></thead>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '760px' }}>
+            <thead><tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border-color)' }}><th style={{ padding: '0.7rem 0.4rem' }}>Nama pengguna</th><th style={{ padding: '0.7rem 0.4rem' }}>Role</th><th style={{ padding: '0.7rem 0.4rem' }}>Status</th><th style={{ padding: '0.7rem 0.4rem' }}>Aksi</th></tr></thead>
             <tbody>
               {users.map((target) => (
                 <tr key={target.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '0.7rem 0.4rem', fontWeight: '600' }}>{target.username}{target.id === user.id ? ' (Anda)' : ''}</td>
+                  <td style={{ padding: '0.7rem 0.4rem', fontWeight: '600' }}>
+                    {editingUserId === target.id ? (
+                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        <input
+                          className="modal-input"
+                          value={editingUsername}
+                          onChange={(event) => setEditingUsername(event.target.value.toLowerCase())}
+                          maxLength="50"
+                          autoComplete="off"
+                          autoFocus
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') saveRename(target);
+                            if (event.key === 'Escape') cancelRename();
+                          }}
+                        />
+                        <button type="button" className="btn btn-primary" onClick={() => saveRename(target)} title="Simpan nama"><Check size={16} /></button>
+                        <button type="button" className="btn" onClick={cancelRename} title="Batal"><X size={16} /></button>
+                      </div>
+                    ) : (
+                      <span>{target.username}{target.id === user.id ? ' (Anda)' : ''}</span>
+                    )}
+                  </td>
                   <td style={{ padding: '0.7rem 0.4rem' }}>
                     <select className="modal-input" value={target.role} onChange={(event) => updateUser(target, { role: event.target.value })} disabled={target.id === user.id}>
                       {Object.entries(roleLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -112,7 +185,9 @@ export default function Users() {
                   <td style={{ padding: '0.7rem 0.4rem' }}>{target.active ? 'Aktif' : 'Nonaktif'}</td>
                   <td style={{ padding: '0.7rem 0.4rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <button type="button" className="btn" onClick={() => updateUser(target, { active: !target.active })} disabled={target.id === user.id}>{target.active ? 'Nonaktifkan' : 'Aktifkan'}</button>
+                    <button type="button" className="btn" onClick={() => beginRename(target)} disabled={editingUserId !== null && editingUserId !== target.id}><Pencil size={15} /> Ubah nama</button>
                     <button type="button" className="btn" onClick={() => resetPin(target)}>Reset PIN</button>
+                    <button type="button" className="btn" onClick={() => deleteUser(target)} disabled={target.id === user.id || deletingUserId === target.id}><Trash2 size={15} /> {deletingUserId === target.id ? 'Menghapus...' : 'Hapus akun'}</button>
                   </td>
                 </tr>
               ))}

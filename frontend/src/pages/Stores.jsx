@@ -7,6 +7,7 @@ import { formatNumber } from '../utils/numberFormat';
 
 export default function Stores() {
   const { user } = useAuth();
+  const canManageStores = user?.role === 'super_admin' && (user?.platformAdmin || user?.storeCode === 'utama');
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -34,8 +35,8 @@ export default function Stores() {
   };
 
   useEffect(() => {
-    if (user?.role === 'super_admin' && user?.platformAdmin) loadStores();
-  }, [user?.role, user?.platformAdmin]);
+    if (canManageStores) loadStores();
+  }, [canManageStores]);
 
   const loadDevices = useCallback(async (storeId = selectedStoreId) => {
     if (!storeId) {
@@ -56,8 +57,8 @@ export default function Stores() {
   }, [selectedStoreId]);
 
   useEffect(() => {
-    if (user?.platformAdmin && selectedStoreId) loadDevices(selectedStoreId);
-  }, [user?.platformAdmin, selectedStoreId, loadDevices]);
+    if (canManageStores && selectedStoreId) loadDevices(selectedStoreId);
+  }, [canManageStores, selectedStoreId, loadDevices]);
 
   useEffect(() => {
     const selectedStore = stores.find((store) => String(store.id) === String(selectedStoreId));
@@ -71,6 +72,7 @@ export default function Stores() {
     try {
       const response = await api.post('/stores', form);
       setStores((current) => [...current, response.data.store]);
+      setSelectedStoreId(String(response.data.store.id));
       setCreatedOwner({ store: response.data.store, owner: response.data.owner });
       setForm({ code: '', name: '', owner_username: '', owner_pin: '' });
       toast.success('Toko berhasil dibuat');
@@ -153,7 +155,7 @@ export default function Stores() {
     return <div style={{ padding: '2rem', color: 'var(--text-secondary)' }}>Manajemen toko hanya dapat diakses oleh pengelola platform.</div>;
   }
 
-  if (!user?.platformAdmin) {
+  if (!canManageStores) {
     return (
       <div style={{ padding: '1rem', width: '100%', maxWidth: '700px', paddingBottom: '90px' }}>
         <div style={{ background: 'var(--surface-color)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-lg)', padding: '1.5rem' }}>
@@ -163,7 +165,7 @@ export default function Stores() {
             <div><small style={{ color: 'var(--text-secondary)' }}>Nama Toko</small><strong style={{ display: 'block', fontSize: '1.1rem' }}>{user.storeName || 'Toko Utama'}</strong></div>
             <div><small style={{ color: 'var(--text-secondary)' }}>Kode Toko</small><strong style={{ display: 'block' }}>{user.storeCode || 'utama'}</strong></div>
           </div>
-          <p style={{ margin: '1.25rem 0 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Untuk mengganti nama toko, buka menu Pengaturan. Akun ini tidak memiliki akses untuk mengelola toko lain.</p>
+          <p style={{ margin: '1.25rem 0 0', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Untuk mengganti nama toko, buka menu Pengaturan. Untuk menambah toko baru, masuk menggunakan Super Admin dengan kode toko <strong>utama</strong>.</p>
         </div>
       </div>
     );
